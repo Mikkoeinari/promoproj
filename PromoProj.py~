@@ -3,18 +3,67 @@ from math import ceil
 from time import time
 from collections import Counter
 import numpy as np
+import itertools
+
 
 def probabilities(rows):
     singleprobs=[]
+    dualprobs=[]
+    triprobs=[]
     for i in np.array(rows).transpose(): #go through all columns of the input data
         c=Counter(i)                    #Count occurences of different values
         rowcount=sum(c.values())        #total number of rows
-        singleprobs.append([c['1']/float(rowcount), c['2']/float(rowcount), c['3']/float(rowcount)]) #store pobabilitydistribution to a list
-        dip=np.array(rows).transpose()-i
-        for j in dip:
-            joined=i+j
-            print(joined)
-    print(singleprobs)
+        singleprobs.append([(c['1']+1)/float(rowcount+3), (c['2']+1)/float(rowcount+3), (c['3']+1)/float(rowcount+3)]) #store pobabilitydistribution to a list
+        for j in np.array(rows).transpose()[:]:
+            if (j==i).all():
+                j=i;
+            else:
+                k=([m+str(n) for m,n in zip(i,j)])
+                d=Counter(m)
+                dualprobs.append([(d['11']+1)/float(rowcount+9), (d['12']+1)/float(rowcount+9), (d['13']+1)/float(rowcount+9),
+                    (d['21']+1)/float(rowcount+9), (d['22']+1)/float(rowcount+9), (d['23']+1)/float(rowcount+9),
+                    (d['31']+1)/float(rowcount+9), (d['32']+1)/float(rowcount+9), (d['33']+1)/float(rowcount+9)])
+                for l in np.array(rows).transpose()[:]:
+                    if (l==j).all() or (l==i).all():
+                        l=l
+                    else:
+                        l=([m+str(n) for m,n in zip(k,l)])
+                        e=Counter(l)
+                        triprobs.append([(e['111']+1)/float(rowcount+27), (e['112']+1)/float(rowcount+27), (e['113']+1)/float(rowcount+27),
+                                           (e['121']+1)/float(rowcount+27), (e['122']+1)/float(rowcount+27), (e['123']+1)/float(rowcount+27),
+                                           (e['131']+1)/float(rowcount+27), (e['132']+1)/float(rowcount+27), (e['133']+1)/float(rowcount+27),
+                                           (e['211']+1)/float(rowcount+27), (e['212']+1)/float(rowcount+27), (e['213']+1)/float(rowcount+27),
+                                           (e['221']+1)/float(rowcount+27), (e['222']+1)/float(rowcount+27), (e['223']+1)/float(rowcount+27),
+                                           (e['231']+1)/float(rowcount+27), (e['232']+1)/float(rowcount+27), (e['233']+1)/float(rowcount+27),
+                                           (e['311']+1)/float(rowcount+27), (e['312']+1)/float(rowcount+27), (e['313']+1)/float(rowcount+27),
+                                           (e['321']+1)/float(rowcount+27), (e['322']+1)/float(rowcount+27), (e['323']+1)/float(rowcount+27),
+                                           (e['331']+1)/float(rowcount+27), (e['332']+1)/float(rowcount+27), (e['333']+1)/float(rowcount+27)])
+    #Output to file for validation of output, testing only
+    writeOutput('duals.dat', dualprobs)
+    writeOutput('singles.dat',singleprobs)
+    writeOutput('tris.dat', triprobs)
+    return singleprobs, dualprobs, triprobs
+def checkIndependence(a,b, singleprobs, dualprobs, triprobs):
+##    print(singleprobs[a])
+##    print(singleprobs[b])
+##    print(dualprobs[(a-1*26+b)])
+    print((a)*26+b)
+    singlesproduct=[]
+    for element in itertools.product(*[singleprobs[a],singleprobs[b]]):
+        singlesproduct.append(element[0]*element[1])
+    print singlesproduct
+    print dualprobs[(a)*26+b]
+    if (singlesproduct==dualprobs[(a)*26+b]):
+        print(singlesproduct)
+        print(dualprobs[(a)*26+b])
+        return 1
+    else:
+        return 0
+def writeOutput(filename, outputTable):
+    f = open(filename, 'w')
+    for row in outputTable:
+        f.write("%s\n" % row)
+    f.close()
     
 if __name__ == '__main__':
     desc    = 'Attempt to find optimal bayesian network'
@@ -71,8 +120,13 @@ if __name__ == '__main__':
     n = len(rows)
     stderr.write('[%d transaction(s)] ' % n)
     stderr.write('done [%.2fs].\n' % (time()-t)) 
-    probabilities(rows)
-    
-
+    t = time()
+    stderr.write('counting probabilities')
+    singles, duals, tris=probabilities(rows)
+    stderr.write('done [%.2fs].\n' % (time()-t)) 
+    for i in range(24):
+        for j in range(25):
+            for k in range(26):
+            checkIndependence(i,j, singles, duals, tris)
         
 
